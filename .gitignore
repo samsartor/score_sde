@@ -19,3 +19,7 @@ dist/
 
 # Other
 *.DS_Store
+
+# Virtual Env
+.env/
+work/

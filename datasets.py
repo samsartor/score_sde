@@ -17,6 +17,11 @@
 """Return training and evaluation/test datasets from config files."""
 import jax
 import tensorflow as tf
+
+import resource
+low, high = resource.getrlimit(resource.RLIMIT_NOFILE)
+resource.setrlimit(resource.RLIMIT_NOFILE, (high, high))
+
 import tensorflow_datasets as tfds
 
 

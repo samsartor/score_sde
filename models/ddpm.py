@@ -63,6 +63,8 @@ class DDPM(nn.Module):
       modules.append(nn.Linear(nf * 4, nf * 4))
       modules[1].weight.data = default_initializer()(modules[1].weight.data.shape)
       nn.init.zeros_(modules[1].bias)
+    else:
+      modules = []
 
     self.centered = config.data.centered
     channels = config.data.num_channels
