@@ -32,13 +32,13 @@ from models import layerspp
 from models import layers
 from models import normalization
 
-#from configs.ncsnpp import cifar10_continuous_ve as configs
+from configs.ncsnpp import cifar10_continuous_ve as configs
 from configs.ddpm import cifar10_continuous_vp as configs
 config = configs.get_config()
 
 checkpoint = torch.load('exp/ddpm_continuous_vp.pth')
 
-#score_model = ncsnpp.NCSNpp(config)
+score_model = ncsnpp.NCSNpp(config)
 score_model = ddpm_model.DDPM(config)
 score_model.load_state_dict(checkpoint)
 score_model = score_model.eval()
