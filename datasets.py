@@ -18,6 +18,7 @@
 import jax
 import tensorflow as tf
 import tensorflow_datasets as tfds
+from utils import on_devices
 
 
 def get_data_scaler(config):
@@ -83,20 +84,20 @@ def get_dataset(config, additional_dim=None, uniform_dequantization=False, evalu
   """
   # Compute batch size for this worker.
   batch_size = config.training.batch_size if not evaluation else config.eval.batch_size
-  if batch_size % jax.device_count() != 0:
+  if batch_size % len(on_devices) != 0:
     raise ValueError(f'Batch sizes ({batch_size} must be divided by'
-                     f'the number of devices ({jax.device_count()})')
+                     f'the number of devices ({len(on_devices)})')
 
-  per_device_batch_size = batch_size // jax.device_count()
+  per_device_batch_size = batch_size // len(on_devices)
   # Reduce this when image resolution is too large and data pointer is stored
   shuffle_buffer_size = 10000
   prefetch_size = tf.data.experimental.AUTOTUNE
   num_epochs = None if not evaluation else 1
   # Create additional data dimension when jitting multiple steps together
   if additional_dim is None:
-    batch_dims = [jax.local_device_count(), per_device_batch_size]
+    batch_dims = [len(on_devices), per_device_batch_size]
   else:
-    batch_dims = [jax.local_device_count(), additional_dim, per_device_batch_size]
+    batch_dims = [len(on_devices), additional_dim, per_device_batch_size]
 
   # Create dataset builders for each dataset.
   if config.data.dataset == 'CIFAR10':

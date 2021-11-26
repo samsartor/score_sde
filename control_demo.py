@@ -58,7 +58,7 @@ mask[..., :, 16:, :] = 0.
 mask = jnp.asarray(mask)
 show_samples(inverse_scaler(img * mask))
 
-rng, *step_rng = jax.random.split(rng, jax.local_device_count() + 1)
+rng, *step_rng = jax.random.split(rng, len(utils.on_devices) + 1)
 step_rng = jnp.asarray(step_rng)
 pstate = flax.jax_utils.replicate(state)
 x = pc_inpainter(step_rng, pstate, img, mask)

@@ -33,6 +33,7 @@ import tensorflow as tf
 
 T = TypeVar("T")
 
+on_devices = [d for d in jax.devices() if d.device_kind == 'NVIDIA GeForce GTX 1080 Ti']
 
 def batch_add(a, b):
   return jax.vmap(lambda a, b: a + b)(a, b)

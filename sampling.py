@@ -27,7 +27,7 @@ import flax
 from models.utils import from_flattened_numpy, to_flattened_numpy, get_score_fn
 from scipy import integrate
 import sde_lib
-from utils import batch_mul, batch_add
+from utils import batch_mul, batch_add, on_devices
 
 from models import utils as mutils
 
@@ -491,12 +491,12 @@ def get_ode_sampler(sde, model, shape, inverse_scaler,
     rng, step_rng = random.split(rng)
     if z is None:
       # If not represent, sample the latent code from the prior distibution of the SDE.
-      x = sde.prior_sampling(step_rng, (jax.local_device_count(),) + shape)
+      x = sde.prior_sampling(step_rng, (len(on_devices),) + shape)
     else:
       x = z
 
     def ode_func(t, x):
-      x = from_flattened_numpy(x, (jax.local_device_count(),) + shape)
+      x = from_flattened_numpy(x, (len(on_devices),) + shape)
       vec_t = jnp.ones((x.shape[0], x.shape[1])) * t
       drift = drift_fn(pstate, x, vec_t)
       return to_flattened_numpy(drift)
@@ -505,11 +505,11 @@ def get_ode_sampler(sde, model, shape, inverse_scaler,
     solution = integrate.solve_ivp(ode_func, (sde.T, eps), to_flattened_numpy(x),
                                    rtol=rtol, atol=atol, method=method)
     nfe = solution.nfev
-    x = jnp.asarray(solution.y[:, -1]).reshape((jax.local_device_count(),) + shape)
+    x = jnp.asarray(solution.y[:, -1]).reshape((len(on_devices),) + shape)
 
     # Denoising is equivalent to running one predictor step without adding noise
     if denoise:
-      rng, *step_rng = random.split(rng, jax.local_device_count() + 1)
+      rng, *step_rng = random.split(rng, len(on_devices) + 1)
       step_rng = jnp.asarray(step_rng)
       x = denoise_update_fn(step_rng, pstate, x)
 

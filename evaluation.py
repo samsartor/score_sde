@@ -21,6 +21,7 @@ import six
 import tensorflow as tf
 import tensorflow_gan as tfgan
 import tensorflow_hub as tfhub
+from utils import on_devices
 
 INCEPTION_TFHUB = 'https://tfhub.dev/tensorflow/tfgan/eval/inception/1'
 INCEPTION_OUTPUT = 'logits'
@@ -121,7 +122,7 @@ def run_inception_distributed(input_tensor,
     A dictionary with key `pool_3` and `logits`, representing the pool_3 and
       logits of the inception network respectively.
   """
-  num_tpus = jax.local_device_count()
+  num_tpus = len(utils.on_devices)
   input_tensors = tf.split(input_tensor, num_tpus, axis=0)
   pool3 = []
   logits = [] if not inceptionv3 else None

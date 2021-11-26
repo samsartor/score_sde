@@ -130,12 +130,12 @@ def train(config, workdir):
 
   # Building sampling functions
   if config.training.snapshot_sampling:
-    sampling_shape = (config.training.batch_size // jax.local_device_count(), config.data.image_size,
+    sampling_shape = (config.training.batch_size // len(utils.on_devices), config.data.image_size,
                       config.data.image_size, config.data.num_channels)
     sampling_fn = sampling.get_sampling_fn(config, sde, score_model, sampling_shape, inverse_scaler, sampling_eps)
 
   # Replicate the training state to run on multiple devices
-  pstate = flax_utils.replicate(state)
+  pstate = flax_utils.replicate(state, utils.on_devices)
   num_train_steps = config.training.n_iters
 
   # In case there are multiple hosts (e.g., TPU pods), only log to host 0
@@ -154,7 +154,7 @@ def train(config, workdir):
   for step in range(initial_step, num_train_steps + 1, config.training.n_jitted_steps):
     # Convert data to JAX arrays and normalize them. Use ._numpy() to avoid copy.
     batch = jax.tree_map(lambda x: scaler(x._numpy()), next(train_iter))  # pylint: disable=protected-access
-    rng, *next_rng = jax.random.split(rng, num=jax.local_device_count() + 1)
+    rng, *next_rng = jax.random.split(rng, num=len(utils.on_devices) + 1)
     next_rng = jnp.asarray(next_rng)
     # Execute one training step
     (_, pstate), ploss = p_train_step((next_rng, pstate), batch)
@@ -175,7 +175,7 @@ def train(config, workdir):
     # Report the loss on an evaluation dataset periodically
     if step % config.training.eval_freq == 0:
       eval_batch = jax.tree_map(lambda x: scaler(x._numpy()), next(eval_iter))  # pylint: disable=protected-access
-      rng, *next_rng = jax.random.split(rng, num=jax.local_device_count() + 1)
+      rng, *next_rng = jax.random.split(rng, num=len(utils.on_devices) + 1)
       next_rng = jnp.asarray(next_rng)
       (_, _), peval_loss = p_eval_step((next_rng, pstate), eval_batch)
       eval_loss = flax.jax_utils.unreplicate(peval_loss).mean()
@@ -195,7 +195,7 @@ def train(config, workdir):
 
       # Generate and save samples
       if config.training.snapshot_sampling:
-        rng, *sample_rng = jax.random.split(rng, jax.local_device_count() + 1)
+        rng, *sample_rng = jax.random.split(rng, len(utils.on_devices) + 1)
         sample_rng = jnp.asarray(sample_rng)
         sample, n = sampling_fn(sample_rng, pstate)
         this_sample_dir = os.path.join(
@@ -299,7 +299,7 @@ def evaluate(config,
 
   # Build the sampling function when sampling is enabled
   if config.eval.enable_sampling:
-    sampling_shape = (config.eval.batch_size // jax.local_device_count(),
+    sampling_shape = (config.eval.batch_size // len(utils.on_devices),
                       config.data.image_size, config.data.image_size,
                       config.data.num_channels)
     sampling_fn = sampling.get_sampling_fn(config, sde, score_model, sampling_shape, inverse_scaler, sampling_eps)
@@ -368,14 +368,14 @@ def evaluate(config,
         state = checkpoints.restore_checkpoint(checkpoint_dir, state, step=ckpt)
 
     # Replicate the training state for executing on multiple devices
-    pstate = flax.jax_utils.replicate(state)
+    pstate = flax.jax_utils.replicate(state, utils.on_devices)
     # Compute the loss function on the full evaluation dataset if loss computation is enabled
     if config.eval.enable_loss:
       all_losses = []
       eval_iter = iter(eval_ds)  # pytype: disable=wrong-arg-types
       for i, batch in enumerate(eval_iter):
         eval_batch = jax.tree_map(lambda x: scaler(x._numpy()), batch)  # pylint: disable=protected-access
-        rng, *next_rng = jax.random.split(rng, num=jax.local_device_count() + 1)
+        rng, *next_rng = jax.random.split(rng, num=len(utils.on_devices) + 1)
         next_rng = jnp.asarray(next_rng)
         (_, _), p_eval_loss = p_eval_step((next_rng, pstate), eval_batch)
         eval_loss = flax.jax_utils.unreplicate(p_eval_loss)
@@ -403,7 +403,7 @@ def evaluate(config,
         for batch_id in range(begin_batch_id, len(ds_bpd)):
           batch = next(bpd_iter)
           eval_batch = jax.tree_map(lambda x: scaler(x._numpy()), batch)
-          rng, *step_rng = jax.random.split(rng, jax.local_device_count() + 1)
+          rng, *step_rng = jax.random.split(rng, len(utils.on_devices) + 1)
           step_rng = jnp.asarray(step_rng)
           bpd = likelihood_fn(step_rng, pstate, eval_batch['image'])[0]
           bpd = bpd.reshape(-1)
@@ -451,7 +451,7 @@ def evaluate(config,
           eval_dir, f"ckpt_{ckpt}_host_{jax.host_id()}")
         tf.io.gfile.makedirs(this_sample_dir)
 
-        rng, *sample_rng = jax.random.split(rng, jax.local_device_count() + 1)
+        rng, *sample_rng = jax.random.split(rng, len(utils.on_devices) + 1)
         sample_rng = jnp.asarray(sample_rng)
         samples, n = sampling_fn(sample_rng, pstate)
         samples = np.clip(samples * 255., 0, 255).astype(np.uint8)
