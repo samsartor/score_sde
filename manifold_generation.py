@@ -21,6 +21,8 @@ def get_pc_manifold_sampler(sde, loss, sched, model, shape, predictor,
                                           continuous=continuous,
                                           snr=snr,
                                           n_steps=n_steps)
+  def scaled_loss(x, t, loss_params):
+    return loss(inverse_scaler(x), loss_params)
 
   def pc_manifold_sampler(rng, state, loss_params):
     """ The PC sampler funciton.
@@ -34,11 +36,11 @@ def get_pc_manifold_sampler(sde, loss, sched, model, shape, predictor,
     # Initial sample
     rng, step_rng = random.split(rng)
     x = sde.prior_sampling(step_rng, shape)
-    g_loss = jax.value_and_grad(loss)
-    init_loss = loss(x, loss_params)
+    g_loss = jax.value_and_grad(scaled_loss)
+    init_loss = scaled_loss(x, sde.T, loss_params)
     timesteps = jnp.linspace(sde.T, eps, sde.N)
 
-    def loop_body(i, val):
+    def loop_body(val, i):
       rng, x, x_mean = val
       t = timesteps[i]
       vec_t = jnp.ones(shape[0]) * t
@@ -47,17 +49,18 @@ def get_pc_manifold_sampler(sde, loss, sched, model, shape, predictor,
       x, x_mean = corrector_update_fn(step_rng, state, x, vec_t)
 
       goal_loss = sched(t / sde.T) * init_loss
-      loss, slope = g_loss(x, loss_params)
-      step = slope / jnp.sum(jnp.square(slope)) * (loss - goal_loss)
-      x -= step
+      loss, slope = g_loss(x, t, loss_params)
+      x -= slope / jnp.sum(jnp.square(slope)) * (loss - goal_loss)
 
       rng, step_rng = random.split(rng)
       x, x_mean = predictor_update_fn(step_rng, state, x, vec_t)
 
-      return rng, x, x_mean
+      x_packed = jnp.int8((x - jnp.min(x)) / jnp.ptp(x) * 255 - 128)
+      return (rng, x, x_mean), x_packed
 
-    _, x, x_mean = jax.lax.fori_loop(0, sde.N, loop_body, (rng, x, x))
+    val, xs = jax.lax.scan(loop_body, (rng, x, x), jnp.arange(0, sde.N))
+    _, x, x_mean = val
     # Denoising is equivalent to running one predictor step without adding noise.
-    return inverse_scaler(x_mean if denoise else x), sde.N * (n_steps + 1)
+    return inverse_scaler(x_mean if denoise else x), xs
 
   return jax.pmap(pc_manifold_sampler, axis_name='batch')
