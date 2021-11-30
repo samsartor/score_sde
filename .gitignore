@@ -23,3 +23,5 @@ dist/
 # Virtual Env
 .env/
 work/
+.ipynb_checkpoints/
+exp/
