@@ -57,7 +57,12 @@ def get_default_configs():
   model.embedding_type = 'fourier'
 
   # latent model
-  config.latent = None
+  config.latent = latent = ml_collections.ConfigDict()
+  latent.checkpoint = 'v9/checkpoint_5.pth'
+  latent.dims = [3, 32, 64, 128, 512]
+  latent.strides = [1, 2, 2, 2]
+  latent.dfc = True
+  latent.vq = False
 
   # optimization
   config.optim = optim = ml_collections.ConfigDict()

@@ -146,7 +146,7 @@ class ShallowVAE(nn.Module):
         :param feature_layers: List of string of IDs
         :return: List of the extracted features
         """
-        feature_layers = ['8', '16', '24', '34']#0, '43']
+        feature_layers = ['8', '16', '24', '34']
         features = []
         result = input
         for (key, module) in self.feature_network.features._modules.items():
