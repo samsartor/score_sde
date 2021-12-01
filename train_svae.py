@@ -10,6 +10,7 @@ import numpy as np
 from torch.utils import tensorboard
 from torchvision.utils import make_grid, save_image
 from models import svae
+from torchinfo import summary
 
 
 def step_fn(state, batch, train):
@@ -30,15 +31,15 @@ def step_fn(state, batch, train):
     if train:
         optimizer = state["optimizer"]
         optimizer.zero_grad()
-        recons, input, mu, log_var = model.forward(batch)
-        loss = model.loss_function(recons, input, mu, log_var)
+        recons, input, mu, log_var, vq_loss = model.forward(batch)
+        loss = model.loss_function(recons, input, mu, log_var, vq_loss)
         loss["loss"].backward()
         optimizer.step()
         state["step"] += 1
     else:
         with torch.no_grad():
-            recons, input, mu, log_var = model.forward(batch)
-            loss = model.loss_function(recons, input, mu, log_var)
+            recons, input, mu, log_var, vq_loss = model.forward(batch)
+            loss = model.loss_function(recons, input, mu, log_var, vq_loss)
 
     return loss
 
@@ -62,7 +63,7 @@ def train(config, workdir):
 
     # Initialize model.
     model = svae.ShallowVAE(config).to(config.device)
-    print(model)
+    summary(model)
     optimizer = Adam(model.parameters())
     state = dict(optimizer=optimizer, model=model, step=0)
 
@@ -109,7 +110,7 @@ def train(config, workdir):
             logging.info(f"step: {step}, training_loss: {loss['loss']:.5}")
             writer.add_scalar("training_loss", loss["loss"], step)
             writer.add_scalar("training_recon_loss", loss["recon"], step)
-            writer.add_scalar("training_kld_loss", loss["kld"], step)
+            writer.add_scalar("training_reg_loss", loss["reg"], step)
 
         # Save a temporary checkpoint to resume training after pre-emption periodically
         if step != 0 and step % config.training.snapshot_freq_for_preemption == 0:
@@ -128,7 +129,7 @@ def train(config, workdir):
             logging.info(f"step: {step}, eval_loss: {eval_loss['loss']:.5}")
             writer.add_scalar("eval_loss", eval_loss["loss"], step)
             writer.add_scalar("eval_recon_loss", eval_loss["recon"], step)
-            writer.add_scalar("eval_kld_loss", eval_loss["kld"], step)
+            writer.add_scalar("eval_reg_loss", eval_loss["reg"], step)
 
         # Save a checkpoint periodically and generate samples if needed
         if (
@@ -177,10 +178,10 @@ def train(config, workdir):
 
 
 if __name__ == "__main__":
-    from configs.svae import church_v5 as configs
+    from configs.svae import church_v9 as configs
 
     logging.basicConfig(stream=sys.stdout, level=logging.INFO)
-    dir = "/tmp/church_svae_v5"
+    dir = "/tmp/church_svae_v9"
     tf.io.gfile.makedirs(dir)
     gfile_stream = open(os.path.join(dir, "stdout.txt"), "w")
     handler = logging.StreamHandler(gfile_stream)

@@ -23,9 +23,6 @@ import logging
 import os
 import tensorflow as tf
 
-import torch
-import torchvision
-
 FLAGS = flags.FLAGS
 
 config_flags.DEFINE_config_file(
