@@ -141,8 +141,7 @@ def get_ddpm_loss_fn(vpsde, train, reduce_mean=True):
                      sqrt_1m_alphas_cumprod[labels, None, None, None] * noise
     # label_offset = torch.distributions.beta.Beta(2, 10).sample((batch.shape[0],)).to(model.device)
     # label_offset *= vpsde.N * labels
-    #score = model_fn(perturbed_data, labels)
-    score = model_fn(perturbed_data, labels + label_offset.int())
+    score = model_fn(perturbed_data, labels)
     losses = torch.square(score - noise)
     losses = reduce_op(losses.reshape(losses.shape[0], -1), dim=-1)
     loss = torch.mean(losses)

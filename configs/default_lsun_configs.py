@@ -56,6 +56,9 @@ def get_default_configs():
   model.dropout = 0.
   model.embedding_type = 'fourier'
 
+  # latent model
+  config.latent = None
+
   # optimization
   config.optim = optim = ml_collections.ConfigDict()
   optim.weight_decay = 0

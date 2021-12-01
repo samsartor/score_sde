@@ -27,7 +27,7 @@ def get_config():
   training.sde = 'vpsde'
   training.continuous = True
   training.reduce_mean = True
-  training.batch_size = 64
+  training.batch_size = 32
   training.snapshot_freq = 5000
 
   # sampling
@@ -50,12 +50,12 @@ def get_config():
   model.ema_rate = 0.9999
   model.normalization = 'GroupNorm'
   model.nonlinearity = 'swish'
-  model.nf = 64
+  model.nf = 32
   model.ch_mult = (1, 1, 2, 2, 4, 4)
   model.num_res_blocks = 2
   model.attn_resolutions = (16,)
   model.resamp_with_conv = True
-  model.conditional = True
+  model.conditional = False
 
   # optim
   optim = config.optim

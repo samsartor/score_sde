@@ -15,7 +15,6 @@
 
 """Utility functions for computing FID/Inception scores."""
 
-import jax
 import numpy as np
 import six
 import tensorflow as tf
@@ -109,6 +108,8 @@ def run_inception_distributed(input_tensor,
                               inception_model,
                               num_batches=1,
                               inceptionv3=False):
+  import jax
+
   """Distribute the inception network computation to all available TPUs.
 
   Args:

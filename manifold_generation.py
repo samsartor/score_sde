@@ -42,9 +42,9 @@ def get_pc_manifold_sampler(sde, loss, sched, shape, predictor, corrector, inver
       this_loss.backward()
       slope = x.grad
       x.requires_grad_(False)
-      x -= slope / torch.sum(torch.square(slope)) * (this_loss - goal_loss)
 
       with torch.no_grad():
+        x -= slope / torch.sum(torch.square(slope)) * (this_loss - goal_loss)
         x, x_mean = predictor_update_fn(x, vec_t, model=model)
 
     return inverse_scaler(x_mean if denoise else x)

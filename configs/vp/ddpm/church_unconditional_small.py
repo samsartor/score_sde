@@ -27,7 +27,7 @@ def get_config():
   training.sde = 'vpsde'
   training.continuous = True
   training.reduce_mean = True
-  training.batch_size = 64
+  training.batch_size = 12
   training.snapshot_freq = 5000
 
   # sampling
@@ -55,7 +55,7 @@ def get_config():
   model.num_res_blocks = 2
   model.attn_resolutions = (16,)
   model.resamp_with_conv = True
-  model.conditional = True
+  model.conditional = False
 
   # optim
   optim = config.optim
