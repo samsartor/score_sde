@@ -51,7 +51,7 @@ class DDPM(nn.Module):
     dropout = config.model.dropout
     resamp_with_conv = config.model.resamp_with_conv
     self.num_resolutions = num_resolutions = len(ch_mult)
-    image_size, channels, self.centered = utils.diffusion_domain(config)
+    channels, image_size, self.centered = utils.diffusion_domain(config)
     self.all_resolutions = all_resolutions = [image_size // (2 ** i) for i in range(num_resolutions)]
 
     AttnBlock = functools.partial(layers.AttnBlock)

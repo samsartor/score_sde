@@ -29,8 +29,10 @@ def get_pc_manifold_sampler(sde, loss, sched, shape, predictor, corrector, inver
     with torch.no_grad():
       x = sde.prior_sampling(shape).to(device)
       if svae is not None:
-        x = svae.decode(x)
-      init_loss = loss(x, loss_params)
+        y = svae.decode(x)
+      else:
+        y = x
+      init_loss = loss(y, loss_params)
       timesteps = torch.linspace(sde.T, eps, sde.N, device=device)
 
     for i in range(sde.N):
@@ -38,12 +40,15 @@ def get_pc_manifold_sampler(sde, loss, sched, shape, predictor, corrector, inver
       vec_t = torch.ones(shape[0], device=t.device) * t
       with torch.no_grad():
         x, x_mean = corrector_update_fn(x, vec_t, model=model)
+        pass
 
       x.requires_grad_(True)
       goal_loss = sched(t / sde.T) * init_loss
       if svae is not None:
-        x = svae.decode(x)
-      this_loss = loss(x, loss_params)
+        y = svae.decode(x)
+      else:
+        y = x
+      this_loss = loss(y, loss_params)
       this_loss.backward()
       slope = x.grad
       x.requires_grad_(False)
@@ -52,6 +57,9 @@ def get_pc_manifold_sampler(sde, loss, sched, shape, predictor, corrector, inver
         x -= slope / torch.sum(torch.square(slope)) * (this_loss - goal_loss)
         x, x_mean = predictor_update_fn(x, vec_t, model=model)
 
-    return inverse_scaler(x_mean if denoise else x)
+    x = x_mean if denoise else x
+    if svae is not None:
+      x = svae.decode(x)
+    return inverse_scaler(x)
 
   return pc_manifold_sampler

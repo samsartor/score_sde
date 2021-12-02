@@ -28,7 +28,7 @@ def diffusion_domain(config):
   channels = config.data.num_channels
   centered = config.data.centered
   if config.latent is not None:
-    img_size /= np.prod(config.latent.strides)
+    img_size //= np.prod(config.latent.strides)
     channels = config.latent.dims[-1]
     centered = True
   return (channels, img_size, centered)
@@ -59,6 +59,7 @@ def register_model(cls=None, *, name=None):
 
 
 def get_model(name):
+  print(_MODELS)
   return _MODELS[name]
 
 
