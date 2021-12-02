@@ -178,10 +178,10 @@ def train(config, workdir):
 
 
 if __name__ == "__main__":
-    from configs.svae import church_v10 as configs
+    from configs.svae import church_v11 as configs
 
     logging.basicConfig(stream=sys.stdout, level=logging.INFO)
-    dir = "/tmp/church_svae_v10"
+    dir = "/tmp/church_svae_v11"
     tf.io.gfile.makedirs(dir)
     gfile_stream = open(os.path.join(dir, "stdout.txt"), "w")
     handler = logging.StreamHandler(gfile_stream)

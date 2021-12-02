@@ -30,6 +30,7 @@ from models import ddpm, ncsnv2, ncsnpp
 import losses
 import sampling
 from models import utils as mutils
+import models.svae
 from models.ema import ExponentialMovingAverage
 import datasets
 import evaluation
@@ -99,6 +100,14 @@ def train(config, workdir):
   else:
     raise NotImplementedError(f"SDE {config.training.sde} unknown.")
 
+  # Setup SVAE
+  if config.latents is not None:
+    svae = models.svae.ShallowVAE(config).to(config.device)
+    svae_state = dict(step=0, model=svae)
+    svae_state = restore_checkpoint("exp/svae/" + config.latent.checkpoint, svae_state, config.device)
+  else:
+    svae = None
+
   # Build one-step training and evaluation functions
   optimize_fn = losses.optimization_manager(config)
   continuous = config.training.continuous
@@ -113,8 +122,10 @@ def train(config, workdir):
 
   # Building sampling functions
   if config.training.snapshot_sampling:
-    sampling_shape = (config.training.batch_size, config.data.num_channels,
-                      config.data.image_size, config.data.image_size)
+    image_size = config.data.image_size
+    if config.latent is not None:
+      image_size /= np.prod(config.latent.strides)
+    sampling_shape = (config.training.batch_size, config.data.num_channels, image_size, image_size)
     sampling_fn = sampling.get_sampling_fn(config, sde, sampling_shape, inverse_scaler, sampling_eps)
 
   num_train_steps = config.training.n_iters
@@ -128,7 +139,7 @@ def train(config, workdir):
     batch = batch.permute(0, 3, 1, 2)
     batch = scaler(batch)
     # Execute one training step
-    loss = train_step_fn(state, batch)
+    loss = train_step_fn(state, batch, svae)
     if step % config.training.log_freq == 0:
       logging.info("step: %d, training_loss: %.5e" % (step, loss.item()))
       writer.add_scalar("training_loss", loss, step)
@@ -142,7 +153,7 @@ def train(config, workdir):
       eval_batch = torch.from_numpy(next(eval_iter)['image']._numpy()).to(config.device).float()
       eval_batch = eval_batch.permute(0, 3, 1, 2)
       eval_batch = scaler(eval_batch)
-      eval_loss = eval_step_fn(state, eval_batch)
+      eval_loss = eval_step_fn(state, eval_batch, svae)
       logging.info("step: %d, eval_loss: %.5e" % (step, eval_loss.item()))
       writer.add_scalar("eval_loss", eval_loss.item(), step)
 
@@ -156,7 +167,7 @@ def train(config, workdir):
       if config.training.snapshot_sampling:
         ema.store(score_model.parameters())
         ema.copy_to(score_model.parameters())
-        sample, n = sampling_fn(score_model)
+        sample, n = sampling_fn(score_model, svae)
         ema.restore(score_model.parameters())
         this_sample_dir = os.path.join(sample_dir, "iter_{}".format(step))
         tf.io.gfile.makedirs(this_sample_dir)
@@ -216,6 +227,14 @@ def evaluate(config,
     sampling_eps = 1e-5
   else:
     raise NotImplementedError(f"SDE {config.training.sde} unknown.")
+
+  # Setup SVAE
+  if config.latents is not None:
+    svae = models.svae.ShallowVAE(config).to(config.device)
+    svae_state = dict(step=0, model=svae)
+    svae_state = restore_checkpoint("exp/svae/" + config.latent.checkpoint, svae_state, config.device)
+  else:
+    svae = None
 
   # Create the one-step evaluation function when loss computation is enabled
   if config.eval.enable_loss:

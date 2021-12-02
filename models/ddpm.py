@@ -22,6 +22,7 @@ https://github.com/hojonathanho/diffusion/blob/master/diffusion_tf/models/unet.p
 import torch
 import torch.nn as nn
 import functools
+import numpy as np
 
 from . import utils, layers, normalization
 
@@ -50,7 +51,10 @@ class DDPM(nn.Module):
     dropout = config.model.dropout
     resamp_with_conv = config.model.resamp_with_conv
     self.num_resolutions = num_resolutions = len(ch_mult)
-    self.all_resolutions = all_resolutions = [config.data.image_size // (2 ** i) for i in range(num_resolutions)]
+    image_size = config.data.image_size
+    if config.latent is not None:
+      image_size /= np.prod(config.latent.strides)
+    self.all_resolutions = all_resolutions = [image_size // (2 ** i) for i in range(num_resolutions)]
 
     AttnBlock = functools.partial(layers.AttnBlock)
     self.conditional = conditional = config.model.conditional
@@ -66,8 +70,12 @@ class DDPM(nn.Module):
     else:
       modules = []
 
-    self.centered = config.data.centered
-    channels = config.data.num_channels
+    if config.latent is not None:
+      channels = config.latent.dims[-1]
+      self.centered = True
+    else:
+      channels = config.data.num_channels
+      self.centered = config.data.centered
 
     # Downsampling block
     modules.append(conv3x3(channels, nf))

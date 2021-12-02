@@ -70,7 +70,7 @@ def get_sde_loss_fn(sde, train, reduce_mean=True, continuous=True, likelihood_we
   """
   reduce_op = torch.mean if reduce_mean else lambda *args, **kwargs: 0.5 * torch.sum(*args, **kwargs)
 
-  def loss_fn(model, batch):
+  def loss_fn(model, batch, svae=None):
     """Compute the loss function.
 
     Args:
@@ -81,6 +81,9 @@ def get_sde_loss_fn(sde, train, reduce_mean=True, continuous=True, likelihood_we
       loss: A scalar that represents the average loss value across the mini-batch.
     """
     score_fn = mutils.get_score_fn(sde, model, train=train, continuous=continuous)
+    if svae is not None:
+      with torch.no_grad():
+        batch, _ = svae.encode(batch)
     t = torch.rand(batch.shape[0], device=batch.device) * (sde.T - eps) + eps
     z = torch.randn_like(batch)
     mean, std = sde.marginal_prob(batch, t)
@@ -176,7 +179,7 @@ def get_step_fn(sde, train, optimize_fn=None, reduce_mean=False, continuous=True
     else:
       raise ValueError(f"Discrete training for {sde.__class__.__name__} is not recommended.")
 
-  def step_fn(state, batch):
+  def step_fn(state, batch, svae=None):
     """Running one step of training or evaluation.
 
     This function will undergo `jax.lax.scan` so that multiple steps can be pmapped and jit-compiled together
@@ -194,7 +197,7 @@ def get_step_fn(sde, train, optimize_fn=None, reduce_mean=False, continuous=True
     if train:
       optimizer = state['optimizer']
       optimizer.zero_grad()
-      loss = loss_fn(model, batch)
+      loss = loss_fn(model, batch, svae)
       loss.backward()
       optimize_fn(optimizer, model.parameters(), step=state['step'])
       state['step'] += 1

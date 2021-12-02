@@ -387,7 +387,7 @@ def get_pc_sampler(sde, shape, predictor, corrector, inverse_scaler, snr,
                                           snr=snr,
                                           n_steps=n_steps)
 
-  def pc_sampler(model):
+  def pc_sampler(model, svae=None):
     """ The PC sampler funciton.
 
     Args:
@@ -406,7 +406,10 @@ def get_pc_sampler(sde, shape, predictor, corrector, inverse_scaler, snr,
         x, x_mean = corrector_update_fn(x, vec_t, model=model)
         x, x_mean = predictor_update_fn(x, vec_t, model=model)
 
-      return inverse_scaler(x_mean if denoise else x), sde.N * (n_steps + 1)
+      x = x_mean if denoise else x
+      if svae is not None:
+        x = svae.decode(x)
+      return inverse_scaler(x), sde.N * (n_steps + 1)
 
   return pc_sampler
 
