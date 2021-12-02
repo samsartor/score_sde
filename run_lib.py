@@ -123,12 +123,7 @@ def train(config, workdir):
                                     likelihood_weighting=likelihood_weighting)
   # Building sampling functions
   if config.training.snapshot_sampling:
-    image_size = config.data.image_size
-    num_channels = config.data.num_channels
-    if config.latent is not None:
-      image_size //= np.prod(config.latent.strides)
-      num_channels = config.latent.dims[-1]
-    sampling_shape = (config.training.batch_size, num_channels, image_size, image_size)
+    sampling_shape = mutils.sample_shape(config)
     sampling_fn = sampling.get_sampling_fn(config, sde, sampling_shape, inverse_scaler, sampling_eps)
 
   # Summarize Models

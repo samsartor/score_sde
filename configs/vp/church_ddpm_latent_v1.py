@@ -7,8 +7,8 @@ def get_config():
   training = config.training
   training.sde = 'vpsde'
   training.continuous = True
-  training.batch_size = 64
-  training.snapshot_freq = 2000
+  training.batch_size = 128
+  training.snapshot_freq = 20000
 
   # data
   data = config.data
@@ -19,6 +19,9 @@ def get_config():
   sampling.method = 'pc'
   sampling.predictor = 'reverse_diffusion'
   sampling.corrector = 'langevin'
+
+  # latent
+  config.latent.checkpoint = 'v11/checkpoint_7.pth'
 
   # model
   model = config.model

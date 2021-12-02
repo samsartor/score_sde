@@ -51,9 +51,7 @@ class DDPM(nn.Module):
     dropout = config.model.dropout
     resamp_with_conv = config.model.resamp_with_conv
     self.num_resolutions = num_resolutions = len(ch_mult)
-    image_size = config.data.image_size
-    if config.latent is not None:
-      image_size /= np.prod(config.latent.strides)
+    image_size, channels, self.centered = utils.diffusion_domain(config)
     self.all_resolutions = all_resolutions = [image_size // (2 ** i) for i in range(num_resolutions)]
 
     AttnBlock = functools.partial(layers.AttnBlock)
@@ -69,13 +67,6 @@ class DDPM(nn.Module):
       nn.init.zeros_(modules[1].bias)
     else:
       modules = []
-
-    if config.latent is not None:
-      channels = config.latent.dims[-1]
-      self.centered = True
-    else:
-      channels = config.data.num_channels
-      self.centered = config.data.centered
 
     # Downsampling block
     modules.append(conv3x3(channels, nf))

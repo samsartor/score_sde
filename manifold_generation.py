@@ -17,7 +17,7 @@ def get_pc_manifold_sampler(sde, loss, sched, shape, predictor, corrector, inver
                                           snr=snr,
                                           n_steps=n_steps)
 
-  def pc_manifold_sampler(model, loss_params):
+  def pc_manifold_sampler(model, loss_params, svae=None):
     """ The PC sampler funciton.
 
     Args:
@@ -26,9 +26,12 @@ def get_pc_manifold_sampler(sde, loss, sched, shape, predictor, corrector, inver
       Samples, number of function evaluations.
     """
     # Initial sample
-    x = sde.prior_sampling(shape).to(device)
-    init_loss = loss(x, loss_params)
-    timesteps = torch.linspace(sde.T, eps, sde.N, device=device)
+    with torch.no_grad():
+      x = sde.prior_sampling(shape).to(device)
+      if svae is not None:
+        x = svae.decode(x)
+      init_loss = loss(x, loss_params)
+      timesteps = torch.linspace(sde.T, eps, sde.N, device=device)
 
     for i in range(sde.N):
       t = timesteps[i]
@@ -38,6 +41,8 @@ def get_pc_manifold_sampler(sde, loss, sched, shape, predictor, corrector, inver
 
       x.requires_grad_(True)
       goal_loss = sched(t / sde.T) * init_loss
+      if svae is not None:
+        x = svae.decode(x)
       this_loss = loss(x, loss_params)
       this_loss.backward()
       slope = x.grad
