@@ -19,7 +19,6 @@
 import torch
 import sde_lib
 import numpy as np
-from torchinfo import summary
 
 
 _MODELS = {}
@@ -92,15 +91,7 @@ def create_model(config):
   score_model = get_model(model_name)(config)
   score_model = score_model.to(config.device)
   score_model = torch.nn.DataParallel(score_model)
-  print(summary(score_model,
-    [
-      (1, config.data.num_channels, config.data.image_size, config.data.image_size),
-      (1,),
-    ],
-    dtypes=[torch.float, torch.int32],
-  ))
   return score_model
-
 
 def get_model_fn(model, train=False):
   """Create a function to give the output of the score-based model.

@@ -1,9 +1,9 @@
 import ml_collections
 
-from configs.default_lsun_configs import get_default_configs
+import configs.default_lsun_configs
 
-def get_config():
-  config = get_default_configs()
+def get_default_configs():
+  config = configs.default_lsun_configs.get_default_configs()
 
   config.latent = latent = ml_collections.ConfigDict()
   latent.checkpoint = 'v11/checkpoint_7.pth'
@@ -11,3 +11,5 @@ def get_config():
   latent.strides = [1, 2, 2, 2, 1]
   latent.dfc = False # set to true for training
   latent.vq = False
+
+  return config

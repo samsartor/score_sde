@@ -41,6 +41,7 @@ import torch
 from torch.utils import tensorboard
 from torchvision.utils import make_grid, save_image
 from utils import save_checkpoint, restore_checkpoint
+from torchinfo import summary
 
 FLAGS = flags.FLAGS
 
@@ -101,12 +102,13 @@ def train(config, workdir):
     raise NotImplementedError(f"SDE {config.training.sde} unknown.")
 
   # Setup SVAE
-  if config.latents is not None:
+  if config.latent is not None:
     svae = models.svae.ShallowVAE(config).to(config.device)
     svae_state = dict(step=0, model=svae)
     svae_state = restore_checkpoint("exp/svae/" + config.latent.checkpoint, svae_state, config.device)
   else:
     svae = None
+
 
   # Build one-step training and evaluation functions
   optimize_fn = losses.optimization_manager(config)
@@ -119,14 +121,27 @@ def train(config, workdir):
   eval_step_fn = losses.get_step_fn(sde, train=False, optimize_fn=optimize_fn,
                                     reduce_mean=reduce_mean, continuous=continuous,
                                     likelihood_weighting=likelihood_weighting)
-
   # Building sampling functions
   if config.training.snapshot_sampling:
     image_size = config.data.image_size
+    num_channels = config.data.num_channels
     if config.latent is not None:
-      image_size /= np.prod(config.latent.strides)
-    sampling_shape = (config.training.batch_size, config.data.num_channels, image_size, image_size)
+      image_size //= np.prod(config.latent.strides)
+      num_channels = config.latent.dims[-1]
+    sampling_shape = (config.training.batch_size, num_channels, image_size, image_size)
     sampling_fn = sampling.get_sampling_fn(config, sde, sampling_shape, inverse_scaler, sampling_eps)
+
+  # Summarize Models
+  if svae is not None:
+    summary(svae,
+      (config.training.batch_size, config.data.num_channels, config.data.image_size, config.data.image_size),
+    )
+  summary(score_model,
+    [
+      sampling_shape,
+      (1,),
+    ],
+  )
 
   num_train_steps = config.training.n_iters
 
@@ -229,7 +244,7 @@ def evaluate(config,
     raise NotImplementedError(f"SDE {config.training.sde} unknown.")
 
   # Setup SVAE
-  if config.latents is not None:
+  if config.latent is not None:
     svae = models.svae.ShallowVAE(config).to(config.device)
     svae_state = dict(step=0, model=svae)
     svae_state = restore_checkpoint("exp/svae/" + config.latent.checkpoint, svae_state, config.device)

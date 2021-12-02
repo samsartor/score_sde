@@ -7,6 +7,12 @@ def get_config():
   training = config.training
   training.sde = 'vpsde'
   training.continuous = True
+  training.batch_size = 64
+  training.snapshot_freq = 2000
+
+  # data
+  data = config.data
+  data.category = 'church_outdoor'
 
   # sampling
   sampling = config.sampling
@@ -17,7 +23,7 @@ def get_config():
   # model
   model = config.model
   model.name = 'ddpm'
-  model.scale_by_sigma = True
+  model.scale_by_sigma = False
   model.ema_rate = 0.999
   model.normalization = 'GroupNorm'
   model.nonlinearity = 'swish'
