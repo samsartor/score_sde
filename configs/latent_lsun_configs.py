@@ -7,9 +7,10 @@ def get_default_configs():
 
   config.latent = latent = ml_collections.ConfigDict()
   config.latent.checkpoint = 'v11/checkpoint_25.pth'
-  latent.dims = [3, 32, 64, 128, 256, 256]
-  latent.strides = [1, 2, 2, 2, 1]
+  latent.dims = [3, 64, 128, 256]
+  latent.strides = [2, 2, 2]
   latent.dfc = False # set to true for training
   latent.vq = False
+  latent.kld_weight = 0.0005
 
   return config

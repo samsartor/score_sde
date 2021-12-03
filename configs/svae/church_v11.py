@@ -33,6 +33,7 @@ def get_config():
     latent.strides = [1, 2, 2, 2, 1]
     latent.dfc = True
     latent.vq = False
+    latent.kld_weight = 0.001
 
     # data
     data = config.data

@@ -47,8 +47,9 @@ class NCSNpp(nn.Module):
     self.attn_resolutions = attn_resolutions = config.model.attn_resolutions
     dropout = config.model.dropout
     resamp_with_conv = config.model.resamp_with_conv
+    channels, image_size, self.centered = utils.diffusion_domain(config)
     self.num_resolutions = num_resolutions = len(ch_mult)
-    self.all_resolutions = all_resolutions = [config.data.image_size // (2 ** i) for i in range(num_resolutions)]
+    self.all_resolutions = all_resolutions = [image_size // (2 ** i) for i in range(num_resolutions)]
 
     self.conditional = conditional = config.model.conditional  # noise-conditional
     fir = config.model.fir
@@ -135,7 +136,6 @@ class NCSNpp(nn.Module):
 
     # Downsampling block
 
-    channels = config.data.num_channels
     if progressive_input != 'none':
       input_pyramid_ch = channels
 
@@ -256,7 +256,7 @@ class NCSNpp(nn.Module):
     else:
       temb = None
 
-    if not self.config.data.centered:
+    if not self.centered:
       # If input data is in [0, 1]
       x = 2 * x - 1.
 

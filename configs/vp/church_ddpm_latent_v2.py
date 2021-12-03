@@ -18,7 +18,7 @@ def get_config():
   # sampling
   sampling = config.sampling
   sampling.method = 'pc'
-  sampling.predictor = 'reverse_diffusion'
+  sampling.predictor = 'none'
   sampling.corrector = 'langevin'
 
   # latent

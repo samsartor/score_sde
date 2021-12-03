@@ -55,6 +55,7 @@ class ShallowVAE(nn.Module):
     def __init__(self, config) -> None:
         super().__init__()
 
+        self.kld_weight = config.latent.kld_weight
         self.strides = config.latent.strides
         self.dims = config.latent.dims
         assert len(self.strides) + 1 == len(self.dims)
@@ -183,10 +184,9 @@ class ShallowVAE(nn.Module):
             vq_loss = 0
         return self.decode(z), input, mu, log_var, vq_loss
 
-    def loss_function(self, recons, input, mu, log_var, vq_loss, M_N=0.001):
+    def loss_function(self, recons, input, mu, log_var, vq_loss):
         # KL(N(\mu, \sigma), N(0, 1)) = \log \frac{1}{\sigma} + \frac{\sigma^2 + \mu^2}{2} - \frac{1}{2}
 
-        kld_weight = M_N  # Account for the minibatch samples from the dataset
         recons_loss = F.mse_loss(recons, input)
         loss = recons_loss
 
@@ -201,7 +201,7 @@ class ShallowVAE(nn.Module):
             reg_loss = torch.mean(
                 -0.5 * torch.sum(1 + log_var - mu ** 2 - log_var.exp(), dim=1)
             )
-            loss += kld_weight * reg_loss
+            loss += self.kld_weight * reg_loss
         else:
             reg_loss = vq_loss
             loss += vq_loss
