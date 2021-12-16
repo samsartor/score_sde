@@ -35,6 +35,7 @@ def get_config():
     latent.num_embeddings = 512
     latent.embedding_dim = 64
     latent.dfc = False
+    latent.kld_weight = 0.001
 
     # data
     data = config.data

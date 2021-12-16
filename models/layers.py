@@ -111,7 +111,8 @@ def ncsn_conv3x3(in_planes, out_planes, stride=1, bias=True, dilation=1, init_sc
   conv = nn.Conv2d(in_planes, out_planes, stride=stride, bias=bias,
                    dilation=dilation, padding=padding, kernel_size=3)
   conv.weight.data *= init_scale
-  conv.bias.data *= init_scale
+  if bias:
+    conv.bias.data *= init_scale
   return conv
 
 

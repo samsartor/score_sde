@@ -19,7 +19,7 @@ import torch
 import torch.nn as nn
 import functools
 
-from .utils import get_sigmas, register_model
+from .utils import get_sigmas, register_model, diffusion_domain
 from .layers import (CondRefineBlock, RefineBlock, ResidualBlock, ncsn_conv3x3,
                      ConditionalResidualBlock, get_act)
 from .normalization import get_normalization
@@ -44,7 +44,6 @@ def get_network(config):
 class NCSNv2(nn.Module):
   def __init__(self, config):
     super().__init__()
-    self.centered = config.data.centered
     self.norm = get_normalization(config)
     self.nf = nf = config.model.nf
 
@@ -52,10 +51,12 @@ class NCSNv2(nn.Module):
     self.register_buffer('sigmas', torch.tensor(get_sigmas(config)))
     self.config = config
 
-    self.begin_conv = nn.Conv2d(config.data.channels, nf, 3, stride=1, padding=1)
+    channels, image_size, self.centered = diffusion_domain(config)
+
+    self.begin_conv = nn.Conv2d(channels, nf, 3, stride=1, padding=1)
 
     self.normalizer = self.norm(nf, config.model.num_scales)
-    self.end_conv = nn.Conv2d(nf, config.data.channels, 3, stride=1, padding=1)
+    self.end_conv = nn.Conv2d(nf, channels, 3, stride=1, padding=1)
 
     self.res1 = nn.ModuleList([
       ResidualBlock(self.nf, self.nf, resample=None, act=act,
@@ -78,7 +79,7 @@ class NCSNv2(nn.Module):
                     normalization=self.norm, dilation=2)]
     )
 
-    if config.data.image_size == 28:
+    if image_size == 28:
       self.res4 = nn.ModuleList([
         ResidualBlock(2 * self.nf, 2 * self.nf, resample='down', act=act,
                       normalization=self.norm, adjust_padding=True, dilation=4),

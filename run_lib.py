@@ -134,7 +134,7 @@ def train(config, workdir):
   summary(score_model,
     [
       sampling_shape,
-      (1,),
+      (config.training.batch_size,),
     ],
   )
 
