@@ -4,7 +4,8 @@ import functools
 
 def get_pc_manifold_sampler(sde, loss, sched, shape, predictor, corrector, inverse_scaler, snr,
                    n_steps=1, probability_flow=False, continuous=False,
-                   denoise=True, eps=1e-3, device='cuda'):
+                   prior = None, step=0.01, range_override = None,
+                   denoise=True, eps=1e-3,  device='cuda'):
   predictor_update_fn = functools.partial(shared_predictor_update_fn,
                                           sde=sde,
                                           predictor=predictor,
@@ -17,6 +18,9 @@ def get_pc_manifold_sampler(sde, loss, sched, shape, predictor, corrector, inver
                                           snr=snr,
                                           n_steps=n_steps)
 
+  if range_override is None:
+    range_override = range(sde.N)
+
   def pc_manifold_sampler(model, loss_params, svae=None):
     """ The PC sampler funciton.
 
@@ -27,7 +31,10 @@ def get_pc_manifold_sampler(sde, loss, sched, shape, predictor, corrector, inver
     """
     # Initial sample
     with torch.no_grad():
-      x = sde.prior_sampling(shape).to(device)
+      if prior is not None:
+        x, _ = svae.encode(prior.to(device))
+      else:
+        x = sde.prior_sampling(shape).to(device)
       if svae is not None:
         y = svae.decode(x)
       else:
@@ -35,7 +42,9 @@ def get_pc_manifold_sampler(sde, loss, sched, shape, predictor, corrector, inver
       init_loss = loss(y, loss_params)
       timesteps = torch.linspace(sde.T, eps, sde.N, device=device)
 
-    for i in range(sde.N):
+    x_mean = x
+
+    for i in range_override:
       t = timesteps[i]
       vec_t = torch.ones(shape[0], device=t.device) * t
       with torch.no_grad():
@@ -55,13 +64,13 @@ def get_pc_manifold_sampler(sde, loss, sched, shape, predictor, corrector, inver
 
       with torch.no_grad():
         mult = 1 / torch.sum(torch.square(slope)) * (this_loss - goal_loss)
-        mult = max(min(mult, 0.0001), 0)
+        mult = max(min(mult, step), 0)
         x -= slope * mult
         x, x_mean = predictor_update_fn(x, vec_t, model=model)
 
     x = x_mean if denoise else x
     if svae is not None:
       x = svae.decode(x)
-    return inverse_scaler(x)
+    return x
 
   return pc_manifold_sampler

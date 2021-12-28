@@ -195,6 +195,7 @@ def train(config, workdir):
 
 def evaluate(config,
              workdir,
+             checkpoint_path,
              eval_folder="eval"):
   """Evaluate trained models.
 
@@ -289,10 +290,11 @@ def evaluate(config,
 
   begin_ckpt = config.eval.begin_ckpt
   logging.info("begin checkpoint: %d" % (begin_ckpt,))
-  for ckpt in range(begin_ckpt, config.eval.end_ckpt + 1):
+  #for ckpt in range(begin_ckpt, config.eval.end_ckpt + 1):
+  for ckpt in range(1):
     # Wait if the target checkpoint doesn't exist yet
     waiting_message_printed = False
-    ckpt_filename = os.path.join(checkpoint_dir, "checkpoint_{}.pth".format(ckpt))
+    ckpt_filename = os.path.join(checkpoint_path)
     while not tf.io.gfile.exists(ckpt_filename):
       if not waiting_message_printed:
         logging.warning("Waiting for the arrival of checkpoint_%d" % (ckpt,))

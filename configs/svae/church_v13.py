@@ -25,7 +25,8 @@ def get_config():
 
     training = config.training
     training.snapshot_sampling = True
-    training.snapshot_freq = 2000
+    training.batch_size = 64
+    training.snapshot_freq = 5000
 
     # latent model
     config.latent = latent = ml_collections.ConfigDict()
@@ -33,7 +34,7 @@ def get_config():
     latent.strides = [2, 2, 2]
     latent.dfc = True
     latent.vq = False
-    latent.altpad = False
+    latent.altpad = True
     latent.kld_weight = 0.0005
 
     # data

@@ -58,6 +58,7 @@ class ShallowVAE(nn.Module):
         self.kld_weight = config.latent.kld_weight
         self.strides = config.latent.strides
         self.dims = config.latent.dims
+        self.altpad = config.latent.altpad
         assert len(self.strides) + 1 == len(self.dims)
         self.ratio = np.prod(self.strides)
         modules = []
@@ -66,6 +67,7 @@ class ShallowVAE(nn.Module):
         for i in range(len(self.dims) - 2):
             modules.append(
                 nn.Sequential(
+                    # nn.ZeroPad2d((i % 2, (i + 1) % 2, i % 2, (i + 1) % 2) if self.altpad else 1),
                     nn.Conv2d(
                         self.dims[i],
                         self.dims[i + 1],
@@ -105,6 +107,7 @@ class ShallowVAE(nn.Module):
                     ),
                     # nn.BatchNorm2d(self.dims[i - 1]),
                     nn.LeakyReLU(),
+                    # nn.ZeroPad2d((i % 2, (i + 1) % 2, i % 2, (i + 1) % 2) if self.altpad else 1),
                 )
             )
         modules.append(

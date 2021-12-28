@@ -11,6 +11,7 @@ def get_default_configs():
   latent.strides = [2, 2, 2]
   latent.dfc = False # set to true for training
   latent.vq = False
+  latent.altpad = False
   latent.kld_weight = 0.0005
 
   return config

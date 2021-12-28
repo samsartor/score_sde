@@ -31,6 +31,8 @@ flags.DEFINE_string("workdir", None, "Work directory.")
 flags.DEFINE_enum("mode", None, ["train", "eval"], "Running mode: train or eval")
 flags.DEFINE_string("eval_folder", "eval",
                     "The folder name for storing evaluation results")
+flags.DEFINE_string("checkpoint", None,
+                    "The checkpoint to eval")
 flags.mark_flags_as_required(["workdir", "config", "mode"])
 
 
@@ -51,7 +53,7 @@ def main(argv):
     run_lib.train(FLAGS.config, FLAGS.workdir)
   elif FLAGS.mode == "eval":
     # Run the evaluation pipeline
-    run_lib.evaluate(FLAGS.config, FLAGS.workdir, FLAGS.eval_folder)
+    run_lib.evaluate(FLAGS.config, FLAGS.workdir, FLAGS.checkpoint, FLAGS.eval_folder)
   else:
     raise ValueError(f"Mode {FLAGS.mode} not recognized.")
 

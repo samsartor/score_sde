@@ -7,7 +7,7 @@ def get_config():
   training.sde = 'vpsde'
   training.continuous = True
   training.reduce_mean = True
-  training.batch_size = 96
+  training.batch_size = 128
   training.snapshot_freq = 10000
 
   # sampling
@@ -22,13 +22,7 @@ def get_config():
   data.category = 'church_outdoor'
 
   # latent
-  latent = config.latent
-  latent.checkpoint = 'v8/checkpoint_6.pth'
-  latent.dims = [3, 32, 128, 512]
-  latent.strides = [2, 2, 2]
-  latent.vq = True
-  latent.num_embeddings = 512
-  latent.embedding_dim = 64
+  config.latent.checkpoint = 'v12/checkpoint_71.pth'
 
   # model
   model = config.model
@@ -37,8 +31,8 @@ def get_config():
   model.ema_rate = 0.999
   model.normalization = 'GroupNorm'
   model.nonlinearity = 'swish'
-  model.nf = 512
-  model.ch_mult = (1, 1, 1)
+  model.nf = 256
+  model.ch_mult = (1, 2, 2, 2)
   model.num_res_blocks = 2
   model.attn_resolutions = (16,)
   model.resamp_with_conv = True

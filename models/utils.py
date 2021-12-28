@@ -153,6 +153,10 @@ def get_score_fn(sde, model, train=False, continuous=False):
   Returns:
     A score function.
   """
+
+  if model is None:
+    return lambda a, b: 0
+
   model_fn = get_model_fn(model, train=train)
 
   if isinstance(sde, sde_lib.VPSDE) or isinstance(sde, sde_lib.subVPSDE):
